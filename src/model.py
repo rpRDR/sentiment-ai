@@ -17,4 +17,3 @@ class SentimentModel:
             return {"label": "NEGATIVE", "score": round(0.6 + 0.1 * neg, 2), "text": text}
 
         return {"label": "NEUTRAL", "score": 0.5, "text": text}
-    

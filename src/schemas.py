@@ -10,4 +10,3 @@ class PredictionResponse(BaseModel):
     label: Literal["POSITIVE", "NEGATIVE", "NEUTRAL"]
     score: float
     text: str
-    
