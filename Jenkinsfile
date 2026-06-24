@@ -119,9 +119,6 @@ pipeline {
         }
 
         stage('Push') {
-            when {
-                branch 'main'
-            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
@@ -140,9 +137,6 @@ pipeline {
         }
 
         stage('Deploy Staging') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
                 sh '''
