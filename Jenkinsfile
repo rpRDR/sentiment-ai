@@ -154,8 +154,13 @@ pipeline {
 
                         NETWORK_ID=$(docker network inspect cicd-network --format '{{.Id}}' 2>/dev/null || true)
                         if [ -n "$NETWORK_ID" ]; then
-                            terraform import docker_network.cicd "$NETWORK_ID" 2>/dev/null || true
+                            terraform import \
+                            -var="docker_host=unix:///var/run/docker.sock" \
+                            docker_network.cicd "$NETWORK_ID" || true
                         fi
+
+                        docker rm -f sentiment-staging 2>/dev/null || true
+                        docker rm -f sentiment-ai-staging 2>/dev/null || true
 
                         terraform apply -auto-approve \
                         -var="image_tag=${IMAGE_TAG}" \
