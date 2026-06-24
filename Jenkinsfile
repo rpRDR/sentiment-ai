@@ -140,9 +140,14 @@ pipeline {
             steps {
                 echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
                 sh '''
-                    docker compose -f docker-compose.yml -p staging down 2>/dev/null || true
-                    docker compose -f docker-compose.yml -p staging up -d
-                    echo "Staging disponible sur http://localhost:8080"
+                    docker rm -f sentiment-ai-staging 2>/dev/null || true
+
+                    docker run -d \
+                    --name sentiment-ai-staging \
+                    -p 8001:8000 \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+
+                    echo "Staging disponible sur http://localhost:8001"
                 '''
             }
         }
