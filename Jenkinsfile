@@ -28,6 +28,16 @@ pipeline {
             }
         }
 
+        stage('IaC Validate') {
+            steps {
+                dir('infra') {
+                    sh 'terraform init -backend=false -input=false'
+                    sh 'terraform fmt -check'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
         stage('Build & Test') {
             steps {
                 sh '''
@@ -136,18 +146,30 @@ pipeline {
             }
         }
 
+        stage('IaC Apply') {
+            steps {
+                dir('infra') {
+                    sh '''
+                        terraform init -input=false
+
+                        NETWORK_ID=$(docker network inspect cicd-network --format '{{.Id}}' 2>/dev/null || true)
+                        if [ -n "$NETWORK_ID" ]; then
+                            terraform import docker_network.cicd "$NETWORK_ID" 2>/dev/null || true
+                        fi
+
+                        terraform apply -auto-approve \
+                        -var="image_tag=${IMAGE_TAG}" \
+                        -var="docker_host=unix:///var/run/docker.sock"
+                    '''
+                }
+            }
+        }
+
         stage('Deploy Staging') {
             steps {
-                echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
                 sh '''
-                    docker rm -f sentiment-ai-staging 2>/dev/null || true
-
-                    docker run -d \
-                    --name sentiment-ai-staging \
-                    -p 8001:8000 \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
-
-                    echo "Staging disponible sur http://localhost:8001"
+                    echo "Vérification du staging sur http://localhost:8001/health"
+                    curl -f http://localhost:8001/health
                 '''
             }
         }
@@ -158,10 +180,10 @@ pipeline {
             sh 'docker rm -f test-runner 2>/dev/null || true'
         }
         success {
-            echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Pipeline OK -- ${IMAGE_TAG} déployé en staging"
         }
         failure {
-            echo 'Pipeline échoué. Consultez les logs ci-dessus.'
+            echo 'Pipeline KO'
         }
     }
 }
